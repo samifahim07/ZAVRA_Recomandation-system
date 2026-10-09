@@ -1,0 +1,46 @@
+<section id="zavra-style-finder" class="zavra-finder">
+  <h2>Find your perfect ZAVRA shirt</h2>
+  <p>Choose your preferences to see in-stock recommendations.</p>
+  <form id="zavra-form">
+    <label>Budget (BDT)<input name="budget" type="number" min="1" max="100000" value="800" required></label>
+    <label>Size<select name="size"><option>M</option><option>L</option><option>XL</option><option>Any</option></select></label>
+    <label>Fabric<select name="fabric"><option>Any</option><option>Bamboo</option><option>Cross</option><option>Chinese Micro</option></select></label>
+    <label>Color<select name="color"><option>Any</option><option>Black</option><option>White</option><option>Light Blue</option><option>Light Blue Ash</option><option>Dusty Pink</option><option>Deep Galaxy Blue</option><option>Lime Green</option><option>Deep Maroon</option><option>Dark Green</option></select></label>
+    <label>Occasion<select name="occasion"><option>Any</option><option>Office</option><option>Formal</option><option>Business Meeting</option><option>Everyday</option></select></label>
+    <button type="submit">Find my shirt</button>
+  </form>
+  <div id="zavra-message" role="status" aria-live="polite"></div>
+  <div id="zavra-results" class="zavra-results"></div>
+  <small>Recommendations use a catalog snapshot. Final price and stock are confirmed on the Shopify product page.</small>
+</section>
+<style>
+.zavra-finder{max-width:1060px;margin:40px auto;padding:32px;border:1px solid #e7dcd2;background:#fffdfb;color:#292324;border-radius:22px;font-family:inherit}.zavra-finder h2{margin:0 0 6px;font-size:clamp(24px,3vw,36px)}.zavra-finder form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end;margin:24px 0}.zavra-finder label{font-weight:600;font-size:13px;display:flex;flex-direction:column;gap:6px}.zavra-finder input,.zavra-finder select{min-height:42px;border:1px solid #d7d0c8;border-radius:10px;padding:8px;background:#fff;color:#252525}.zavra-finder button{border:0;border-radius:10px;background:#252022;color:#fff;padding:13px;cursor:pointer;grid-column:1/-1;font-weight:700}.zavra-results{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.zavra-card{border:1px solid #e8e1da;border-radius:15px;overflow:hidden;background:white}.zavra-card img{display:block;width:100%;aspect-ratio:3/4;object-fit:cover}.zavra-card-content{padding:15px}.zavra-card-content p{margin:4px 0;font-size:14px}.zavra-card-content a{display:inline-block;margin-top:10px;color:#65452d;font-weight:700}.zavra-card-content strong{display:block;font-size:17px}#zavra-message{margin:10px 0;color:#74462d}
+</style>
+<script>
+(function(){
+  // IMPORTANT: Paste your PUBLIC deployed Render API base URL here (no trailing slash).
+  const API_BASE='https://REPLACE-WITH-YOUR-RENDER-SERVICE.onrender.com';
+  const form=document.querySelector('#zavra-form');
+  const results=document.querySelector('#zavra-results');
+  const message=document.querySelector('#zavra-message');
+  if(!form || !results || !message) return;
+  function element(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;}
+  form.addEventListener('submit',async function(event){
+    event.preventDefault();results.replaceChildren();message.textContent='Finding your match…';
+    const data=Object.fromEntries(new FormData(form).entries());
+    try{
+      const r=await fetch(API_BASE+'/api/recommend',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+      const payload=await r.json();if(!r.ok)throw new Error(payload.error||'Recommendation request failed');
+      message.textContent=payload.count?`Found ${payload.count} matching shirt(s).`:'No available shirts match these filters. Try another size or budget.';
+      for(const item of payload.recommendations){
+        const card=element('article','zavra-card');
+        if(item.image_url){const img=element('img');img.src=item.image_url;img.alt=item.name+' in '+item.color;img.loading='lazy';card.append(img);}
+        const content=element('div','zavra-card-content');content.append(element('strong','',item.name));
+        content.append(element('p','',`${item.color} · ${item.fabric} · Size ${item.size}`));
+        content.append(element('p','',`৳${item.price_bdt.toFixed(0)}${item.match_score===null?'':` · ${item.match_score}% preference match`}`));
+        const link=element('a','','View shirt ↗');link.href=item.product_url;link.target='_blank';link.rel='noopener noreferrer';content.append(link);card.append(content);results.append(card);
+      }
+    }catch(err){message.textContent='Unable to load recommendations. Check API deployment and allowed storefront domain.';console.error(err);}
+  });
+})();
+</script>
